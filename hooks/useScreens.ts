@@ -1,3 +1,5 @@
+"use client";
+
 import { MutableRefObject, useEffect, useRef } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { useWindowScreen } from "./useWindowsScreen";
@@ -20,13 +22,17 @@ interface useScreensObject {
   unregisterScreen: any;
 }
 
+interface ScreenExist {
+  name: string;
+  signal: Date;
+}
+
 export function useScreens(): [MutableRefObject<string>, useScreensObject] {
-  const screenId = useRef(`screen-${getScreenId()}`);
   const [existingScreens, setExistingScreens] = useLocalStorage<string[]>(
     "existingScreens",
     []
   );
-
+  const screenId = useRef(`screen-${getScreenId()}`);
   const windowScreen = useWindowScreen();
 
   function getScreens(): [string, WindowDetails][] {
@@ -46,45 +52,64 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
   }
 
   function getScreenId() {
-    const storage = Object.keys(window.localStorage);
-
-    const existingScreens = storage.filter((key) => key.startsWith("screen-"));
-
-    if (existingScreens.length === 0) {
-      return 1;
-    }
-
     const screenIds = existingScreens.map((key) =>
       parseInt(key.replace("screen-", ""))
     );
     const sortedScreens = screenIds.sort((a, b) => a - b);
     const lastScreenId = sortedScreens.at(-1);
-
-    if (lastScreenId) {
-      return lastScreenId + 1;
-    } else {
-      return 1;
-    }
+    return lastScreenId ? lastScreenId + 1 : 1;
   }
 
-  function registerScreen() {
-    console.log(`adding screen ${screenId.current}`);
-    setExistingScreens((prev) => [...prev, screenId.current]);
+  function registerScreen(screenId: string) {
+    console.log(`adding screen ${screenId}`);
+    setExistingScreens((prev) => [...prev, screenId]);
   }
 
-  function unregisterScreen() {
-    console.log(`removing screen ${screenId.current}`);
+  function unregisterScreen(screenId: string) {
+    console.log(`removing screen ${screenId}`);
     setExistingScreens((prev) => {
-      return prev.filter((prevScreen) => prevScreen === screenId.current);
+      return prev.filter((prevScreen) => prevScreen === screenId);
     });
   }
 
-  function emitSignal() {
-    //send signal to inform other screens that this screen is active
+  function emitPing() {
+    //send ping to inform other screens that this screen is active
+
+    window.localStorage.setItem(
+      `ping_${screenId.current}`,
+      Date.now().toString()
+    );
   }
 
-  function catchSignal() {
-    //checks for screen is active
+  function catchPing() {
+    //active screen will check if other screens are active
+    /*
+    document.addEventListener('visibilitychange', function() {
+        if(document.hidden)
+            console.log('Page is hidden from user view');
+        else
+            console.log('Page is in user view');
+    });
+    */
+
+    const excludeThisScreen = existingScreens.filter(
+      (key) => key !== screenId.current
+    );
+    const screenIds = excludeThisScreen.map((key) => `ping_${key}`);
+
+    screenIds.forEach((id) => {
+      const lastTimePinged = window.localStorage.getItem(id);
+      if (!lastTimePinged) {
+        return;
+      }
+      const lastTimePingedDate = parseInt(lastTimePinged);
+
+      console.log("lastTimePingedDate", lastTimePingedDate);
+
+      if (lastTimePingedDate <= Date.now() + 1050) {
+        unregisterScreen(id);
+      }
+    });
   }
 
   function setScreenDetails() {
@@ -105,7 +130,10 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
   }
 
   useEffect(() => {
-    return () => unregisterScreen();
+    registerScreen(screenId.current);
+    setInterval(emitPing, 1000);
+    setInterval(catchPing, 1060);
+    return () => unregisterScreen(screenId.current);
   }, []);
 
   return [

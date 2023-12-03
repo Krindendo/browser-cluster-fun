@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 
 import { useEventListener, useIsomorphicLayoutEffect } from "usehooks-ts";
