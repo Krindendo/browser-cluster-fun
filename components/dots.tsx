@@ -1,8 +1,15 @@
 "use client";
 
+import { PathMe } from "@/lib/path";
+import { WindowDetails } from "@/types/globals";
 import { useRef } from "react";
+import { useInterval } from "usehooks-ts";
 
-export default function Dots() {
+interface DotsProps {
+  getScreens: () => [string, WindowDetails][];
+}
+
+export default function Dots({ getScreens }: DotsProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
 
@@ -43,8 +50,10 @@ export default function Dots() {
       });
 
     screenPath.closePath();
-    //pathRef.setAttribute("d", screenPath.toString());
+    pathRef.current?.setAttribute("d", screenPath.toString());
   }
+
+  useInterval(makeSVG, 10);
 
   return (
     <svg
@@ -57,9 +66,9 @@ export default function Dots() {
         ref={pathRef}
         fill="none"
         stroke="#ffc600"
-        stroke-width="5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         d="M271,74 L1015,344 M271,74 L271,74"
       ></path>
     </svg>

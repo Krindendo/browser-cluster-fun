@@ -1,28 +1,18 @@
 "use client";
 
-import { MutableRefObject, useEffect, useRef, useState } from "react";
-import { useWindowScreen } from "./useWindowsScreen";
-import { useIsClient } from "usehooks-ts";
+import { useEffect, useRef, useState } from "react";
+import { useEventListener, useIsClient } from "usehooks-ts";
 import { useInterval } from "usehooks-ts";
-
-interface WindowDetails {
-  screenX: number;
-  screenY: number;
-  screenWidth: number;
-  screenHeight: number;
-  width: number;
-  height: number;
-  updated: number;
-}
+import { WindowDetails } from "@/types/globals";
 
 interface useScreensObject extends WindowDetails {
   id: string;
 }
 
 interface useScreensFunctions {
-  getScreens: any;
-  getScreenId: any;
-  setScreenDetails: any;
+  getScreens: () => [string, WindowDetails][];
+  getScreenId: () => number;
+  setScreenDetails: () => void;
 }
 
 const screenInit: WindowDetails = {
@@ -37,9 +27,11 @@ const screenInit: WindowDetails = {
 
 export function useScreens(): [useScreensObject, useScreensFunctions] {
   const isClient = useIsClient();
-  const windowScreen = useWindowScreen();
   const screenId = useRef("");
   const [screen, setScreen] = useState<WindowDetails>(screenInit);
+  const documentRef = useRef<Document>(null);
+
+  useEventListener("visibilitychange", () => {}, documentRef);
 
   useEffect(() => {
     if (isClient) {
@@ -79,32 +71,32 @@ export function useScreens(): [useScreensObject, useScreensFunctions] {
 
   function catchPing() {
     //active screen will check if other screens are actives
-    /*
-    document.addEventListener('visibilitychange', function() {
-        if(document.hidden)
-            console.log('Page is hidden from user view');
-        else
-            console.log('Page is in user view');
-    });
-    */
+
+    if (documentRef.current?.hidden) {
+      return;
+    }
 
     const existingScreens = getScreens();
 
     existingScreens.forEach(([id, screen]) => {
-      if (screen.updated + 1000 <= Date.now()) {
+      if (screen.updated + 2500 <= Date.now()) {
         window.localStorage.removeItem(id);
       }
     });
   }
 
   function setScreenDetails() {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     const windowDetails: WindowDetails = {
-      screenX: windowScreen.screenX,
-      screenY: windowScreen.screenY,
-      screenWidth: windowScreen.availWidth,
-      screenHeight: windowScreen.availHeight,
-      width: windowScreen.outerWidth,
-      height: windowScreen.innerHeight,
+      screenX: window.screenX,
+      screenY: window.screenY,
+      screenWidth: window.screen.availWidth,
+      screenHeight: window.screen.availHeight,
+      width: window.outerWidth,
+      height: window.innerHeight,
       updated: Date.now(),
     };
 
@@ -116,8 +108,8 @@ export function useScreens(): [useScreensObject, useScreensFunctions] {
     );
   }
 
-  useInterval(setScreenDetails, 10);
-  useInterval(catchPing, 1050);
+  useInterval(setScreenDetails, 50);
+  useInterval(catchPing, 1500);
 
   return [
     { id: screenId.current, ...screen },
