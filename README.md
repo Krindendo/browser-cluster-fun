@@ -1,4 +1,4 @@
 # Just for Fun
 
 First faze
-![Screenshot](https://github.com/Krindendo/browser-cluster-fun/tree/main/Screenshot.png?raw=true)
+![Screenshot](https://github.com/Krindendo/browser-cluster-fun/blob/main/public/Screenshot.png?raw=true)
