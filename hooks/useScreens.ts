@@ -1,7 +1,9 @@
 "use client";
 
-import { MutableRefObject, useEffect, useRef } from "react";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { useWindowScreen } from "./useWindowsScreen";
+import { useIsClient } from "usehooks-ts";
+import { useInterval } from "usehooks-ts";
 
 interface WindowDetails {
   screenX: number;
@@ -13,33 +15,58 @@ interface WindowDetails {
   updated: number;
 }
 
-interface useScreensObject {
+interface useScreensObject extends WindowDetails {
+  id: string;
+}
+
+interface useScreensFunctions {
   getScreens: any;
   getScreenId: any;
   setScreenDetails: any;
 }
 
-export function useScreens(): [MutableRefObject<string>, useScreensObject] {
-  const screenId = useRef(`screen-${getScreenId()}`);
+const screenInit: WindowDetails = {
+  height: 0,
+  width: 0,
+  screenHeight: 0,
+  screenWidth: 0,
+  screenX: 0,
+  screenY: 0,
+  updated: Date.now(),
+};
 
+export function useScreens(): [useScreensObject, useScreensFunctions] {
+  const isClient = useIsClient();
   const windowScreen = useWindowScreen();
+  const screenId = useRef("");
+  const [screen, setScreen] = useState<WindowDetails>(screenInit);
+
+  useEffect(() => {
+    if (isClient) {
+      screenId.current = `screen-${getScreenId()}`;
+    }
+  }, [isClient]);
 
   function getScreens(): [string, WindowDetails][] {
-    const storage = Object.entries(window.localStorage);
+    if (typeof window === "undefined") {
+      return [];
+    }
+    const storage = Object.entries<string>(window.localStorage);
 
     const existingScreens = storage.filter(([key]) =>
       key.startsWith("screen-")
     );
 
-    return existingScreens.map(([key, value]: [string, string]) => [
+    return existingScreens.map(([key, value]) => [
       key,
       JSON.parse(value) as WindowDetails,
     ]);
   }
 
   function getScreenId() {
-    console.log("window.localStorage", window.localStorage);
-
+    if (typeof window === "undefined") {
+      return -1;
+    }
     const storage = Object.keys(window.localStorage);
 
     const screenIds = storage.map((key) =>
@@ -61,14 +88,9 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
     });
     */
 
-    const storage = Object.entries(window.localStorage);
+    const existingScreens = getScreens();
 
-    //const excludeThisScreen = storage.filter((key) => key !== screenId.current);
-    //const screenIds = excludeThisScreen.map((key) => `ping_${key}`);
-
-    storage.forEach(([id, screen]) => {
-      //console.log("lastTimePingedDate", lastTimePingedDate);
-
+    existingScreens.forEach(([id, screen]) => {
       if (screen.updated + 1000 <= Date.now()) {
         window.localStorage.removeItem(id);
       }
@@ -86,18 +108,19 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
       updated: Date.now(),
     };
 
+    setScreen(windowDetails);
+
     window.localStorage.setItem(
       screenId.current,
       JSON.stringify(windowDetails)
     );
   }
 
-  useEffect(() => {
-    setInterval(catchPing, 1050);
-  }, []);
+  useInterval(setScreenDetails, 10);
+  useInterval(catchPing, 1050);
 
   return [
-    screenId,
+    { id: screenId.current, ...screen },
     {
       getScreens,
       getScreenId,

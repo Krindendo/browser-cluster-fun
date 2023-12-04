@@ -1,26 +1,13 @@
 "use client";
 
 import { useScreens } from "@/hooks/useScreens";
-import { useEffect, useState } from "react";
-import { useInterval } from "usehooks-ts";
 
 export default function Home() {
-  const [timers, setTimers] = useState<ReturnType<typeof setInterval>[]>([]);
-  const [currentScreenId, { setScreenDetails }] = useScreens();
-  useInterval(setScreenDetails, 10);
-
-  // useEffect(() => {
-  //   setTimers([
-  //     setInterval(setScreenDetails, 10),
-  //     //setInterval(displayStats, 10),
-  //     //setInterval(removeOld, 100),
-  //     //setInterval(makeSVG, 10),
-  //   ]);
-  // }, []);
+  const [screen] = useScreens();
 
   return (
     <main className="">
-      <p>currentScreenId: {currentScreenId.current}</p>
+      <p>currentScreenId: {screen.id}</p>
     </main>
   );
 }
