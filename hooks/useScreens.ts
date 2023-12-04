@@ -1,7 +1,6 @@
 "use client";
 
 import { MutableRefObject, useEffect, useRef } from "react";
-import { useLocalStorage } from "usehooks-ts";
 import { useWindowScreen } from "./useWindowsScreen";
 
 interface WindowDetails {
@@ -18,41 +17,31 @@ interface useScreensObject {
   getScreens: any;
   getScreenId: any;
   setScreenDetails: any;
-  registerScreen: any;
-  unregisterScreen: any;
-}
-
-interface ScreenExist {
-  name: string;
-  signal: Date;
 }
 
 export function useScreens(): [MutableRefObject<string>, useScreensObject] {
-  const [existingScreens, setExistingScreens] = useLocalStorage<string[]>(
-    "existingScreens",
-    []
-  );
   const screenId = useRef(`screen-${getScreenId()}`);
   const windowScreen = useWindowScreen();
 
   function getScreens(): [string, WindowDetails][] {
     const storage = Object.entries(window.localStorage);
 
-    const existingScreens1 = storage.filter(([key]) =>
+    const existingScreens = storage.filter(([key]) =>
       key.startsWith("screen-")
     );
 
-    console.log("existingScreens", existingScreens);
-    console.log("existingScreens1", existingScreens1);
-
-    return existingScreens1.map(([key, value]: [string, string]) => [
+    return existingScreens.map(([key, value]: [string, string]) => [
       key,
       JSON.parse(value) as WindowDetails,
     ]);
   }
 
   function getScreenId() {
-    const screenIds = existingScreens.map((key) =>
+    console.log("window.localStorage", window.localStorage);
+
+    const storage = Object.keys(window.localStorage);
+
+    const screenIds = storage.map((key) =>
       parseInt(key.replace("screen-", ""))
     );
     const sortedScreens = screenIds.sort((a, b) => a - b);
@@ -60,29 +49,8 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
     return lastScreenId ? lastScreenId + 1 : 1;
   }
 
-  function registerScreen(screenId: string) {
-    console.log(`adding screen ${screenId}`);
-    setExistingScreens((prev) => [...prev, screenId]);
-  }
-
-  function unregisterScreen(screenId: string) {
-    console.log(`removing screen ${screenId}`);
-    setExistingScreens((prev) => {
-      return prev.filter((prevScreen) => prevScreen === screenId);
-    });
-  }
-
-  function emitPing() {
-    //send ping to inform other screens that this screen is active
-
-    window.localStorage.setItem(
-      `ping_${screenId.current}`,
-      Date.now().toString()
-    );
-  }
-
   function catchPing() {
-    //active screen will check if other screens are active
+    //active screen will check if other screens are actives
     /*
     document.addEventListener('visibilitychange', function() {
         if(document.hidden)
@@ -92,28 +60,22 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
     });
     */
 
-    const excludeThisScreen = existingScreens.filter(
-      (key) => key !== screenId.current
-    );
-    const screenIds = excludeThisScreen.map((key) => `ping_${key}`);
+    const storage = Object.entries(window.localStorage);
 
-    screenIds.forEach((id) => {
-      const lastTimePinged = window.localStorage.getItem(id);
-      if (!lastTimePinged) {
-        return;
-      }
-      const lastTimePingedDate = parseInt(lastTimePinged);
+    //const excludeThisScreen = storage.filter((key) => key !== screenId.current);
+    //const screenIds = excludeThisScreen.map((key) => `ping_${key}`);
 
-      console.log("lastTimePingedDate", lastTimePingedDate);
+    storage.forEach(([id, screen]) => {
+      //console.log("lastTimePingedDate", lastTimePingedDate);
 
-      if (lastTimePingedDate <= Date.now() + 1050) {
-        unregisterScreen(id);
+      if (screen.updated + 1000 <= Date.now()) {
+        window.localStorage.removeItem(id);
       }
     });
   }
 
   function setScreenDetails() {
-    const windowDetails = {
+    const windowDetails: WindowDetails = {
       screenX: windowScreen.screenX,
       screenY: windowScreen.screenY,
       screenWidth: windowScreen.availWidth,
@@ -130,10 +92,7 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
   }
 
   useEffect(() => {
-    registerScreen(screenId.current);
-    setInterval(emitPing, 1000);
-    setInterval(catchPing, 1060);
-    return () => unregisterScreen(screenId.current);
+    setInterval(catchPing, 1050);
   }, []);
 
   return [
@@ -142,8 +101,6 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
       getScreens,
       getScreenId,
       setScreenDetails,
-      registerScreen,
-      unregisterScreen,
     },
   ];
 }
