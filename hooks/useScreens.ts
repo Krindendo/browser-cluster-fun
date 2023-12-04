@@ -21,6 +21,7 @@ interface useScreensObject {
 
 export function useScreens(): [MutableRefObject<string>, useScreensObject] {
   const screenId = useRef(`screen-${getScreenId()}`);
+
   const windowScreen = useWindowScreen();
 
   function getScreens(): [string, WindowDetails][] {
