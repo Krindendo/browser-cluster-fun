@@ -22,11 +22,6 @@ interface useScreensObject {
   unregisterScreen: any;
 }
 
-interface ScreenExist {
-  name: string;
-  signal: Date;
-}
-
 export function useScreens(): [MutableRefObject<string>, useScreensObject] {
   const [existingScreens, setExistingScreens] = useLocalStorage<string[]>(
     "existingScreens",
@@ -68,7 +63,7 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
   function unregisterScreen(screenId: string) {
     console.log(`removing screen ${screenId}`);
     setExistingScreens((prev) => {
-      return prev.filter((prevScreen) => prevScreen === screenId);
+      return prev.filter((prevScreen) => prevScreen !== screenId);
     });
   }
 
@@ -103,11 +98,13 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
         return;
       }
       const lastTimePingedDate = parseInt(lastTimePinged);
+      //console.log("lastTimePingedDate", lastTimePingedDate);
 
-      console.log("lastTimePingedDate", lastTimePingedDate);
-
-      if (lastTimePingedDate <= Date.now() + 1050) {
-        unregisterScreen(id);
+      if (lastTimePingedDate + 1500 <= Date.now()) {
+        const screenId = id.replace("ping_", "");
+        window.localStorage.removeItem(screenId);
+        window.localStorage.removeItem(id);
+        unregisterScreen(screenId);
       }
     });
   }
@@ -132,8 +129,7 @@ export function useScreens(): [MutableRefObject<string>, useScreensObject] {
   useEffect(() => {
     registerScreen(screenId.current);
     setInterval(emitPing, 1000);
-    setInterval(catchPing, 1060);
-    return () => unregisterScreen(screenId.current);
+    setInterval(catchPing, 1000);
   }, []);
 
   return [
