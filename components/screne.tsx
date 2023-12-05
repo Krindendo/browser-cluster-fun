@@ -7,7 +7,6 @@ import {
   PerspectiveCamera,
   Environment,
   MeshDistortMaterial,
-  ContactShadows,
   OrbitControls,
 } from "@react-three/drei";
 import { useSpring } from "@react-spring/core";
@@ -76,8 +75,16 @@ export default function Scene({}: SceneProps) {
   */
 
   return (
-    <Canvas className="order-2 h-full" dpr={[1, 2]}>
-      <ambientLight />
+    <>
+      <PerspectiveCamera makeDefault position={[0, 0, 4]} fov={75}>
+        <a.ambientLight intensity={ambient} />
+        <a.pointLight
+          ref={light}
+          position-z={-15}
+          intensity={env}
+          color="#F8C069"
+        />
+      </PerspectiveCamera>
       <Suspense fallback={null}>
         <a.mesh
           ref={sphere}
@@ -91,7 +98,8 @@ export default function Scene({}: SceneProps) {
             setMode(!mode);
           }}
         >
-          <sphereBufferGeometry args={[1, 64, 64]} />
+          <sphereGeometry args={[1, 64, 64]} />
+          <meshStandardMaterial />
           <AnimatedMaterial
             color={color}
             envMapIntensity={env}
@@ -103,6 +111,6 @@ export default function Scene({}: SceneProps) {
         <Environment preset="warehouse" />
       </Suspense>
       <OrbitControls />
-    </Canvas>
+    </>
   );
 }
